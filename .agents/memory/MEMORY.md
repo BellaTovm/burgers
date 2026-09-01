@@ -1,0 +1,1 @@
+- [OpenAPI Zod compatibility](openapi-zod-compat.md) — keep generated Zod helpers aligned with the installed Zod runtime; codegen success alone is not enough.

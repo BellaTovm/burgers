@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Bunsen Burger"
+description = "A bold burger restaurant web app for browsing the menu, signing in, and preparing for online ordering with Supabase-backed authentication and data."
+version = "1.0.0"
+id = "artifacts/bunsen-burger"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20699
+
+[services.development]
+run = "pnpm --filter @workspace/bunsen-burger run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bunsen-burger", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/bunsen-burger/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20699"
+BASE_PATH = "/"
