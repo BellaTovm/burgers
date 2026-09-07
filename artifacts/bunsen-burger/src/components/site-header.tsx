@@ -1,6 +1,7 @@
 import { ArrowRight, CircleUserRound, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
+import { isSignedIn } from '@/lib/session';
 
 export function Wordmark() {
   return (
@@ -15,9 +16,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
   const isHome = location === '/';
-  const isSignedIn =
-    typeof window !== 'undefined' &&
-    Boolean(localStorage.getItem('bunsen_access_token'));
+  const signedIn = isSignedIn();
 
   return (
     <header className="absolute inset-x-0 top-0 z-40 border-b border-white/15 bg-[var(--ink)]/95 text-[var(--paper)] backdrop-blur-sm">
@@ -28,8 +27,8 @@ export function SiteHeader() {
           <Link href="/#story" className="mono-face text-[11px] uppercase tracking-[.17em] text-[var(--paper)]/70 transition-colors hover:text-[var(--acid)]" data-testid="link-nav-story">Our counter</Link>
           <Link href="/account" className="inline-flex items-center gap-2 mono-face text-[11px] uppercase tracking-[.17em] text-[var(--paper)]/70 transition-colors hover:text-[var(--acid)]" data-testid="link-nav-account">
             <CircleUserRound size={16} strokeWidth={1.6} />
-            <span className={isSignedIn ? 'text-[var(--acid)]' : undefined}>
-              {isSignedIn ? 'Signed in' : 'Sign in'}
+            <span className={signedIn ? 'text-[var(--acid)]' : undefined}>
+              {signedIn ? 'Signed in' : 'Sign in'}
             </span>
           </Link>
           <Link href="/#menu" className="group inline-flex items-center gap-3 bg-[var(--acid)] px-4 py-3 text-[var(--ink)] transition-transform hover:-translate-y-0.5" data-testid="link-nav-order">

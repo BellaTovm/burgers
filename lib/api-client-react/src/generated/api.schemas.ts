@@ -49,6 +49,10 @@ export interface AuthResponse {
   profile: Profile;
 }
 
+export interface RefreshRequest {
+  refresh_token: string;
+}
+
 export interface Category {
   id: string;
   name: string;

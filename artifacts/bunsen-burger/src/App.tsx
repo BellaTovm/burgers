@@ -8,6 +8,7 @@ import Home from '@/pages/home';
 import { AuthPage } from '@/pages/auth';
 import Account from '@/pages/account';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { accessToken } from '@/lib/session';
 import {
   Route,
   Switch,
@@ -17,7 +18,7 @@ import {
 
 const queryClient = new QueryClient();
 
-setAuthTokenGetter(() => localStorage.getItem('bunsen_access_token'));
+setAuthTokenGetter(accessToken);
 
 function Router() {
   return (

@@ -2,6 +2,7 @@ import { ArrowRight, CircleAlert, LogOut, Mail, ShieldCheck, UserRound } from 'l
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { getGetCurrentProfileQueryKey, useGetCurrentProfile, useLogOut } from '@workspace/api-client-react';
+import { clearSession, isSignedIn } from '@/lib/session';
 
 function ProfileSkeleton() {
   return <div className="animate-pulse space-y-4"><div className="h-8 w-48 bg-[var(--ink)]/10" /><div className="h-16 w-full bg-[var(--ink)]/10" /><div className="h-16 w-full bg-[var(--ink)]/10" /></div>;
@@ -9,7 +10,7 @@ function ProfileSkeleton() {
 
 export default function Account() {
   const [, setLocation] = useLocation();
-  const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('bunsen_access_token'));
+  const hasToken = isSignedIn();
   const profileQuery = useGetCurrentProfile({ query: { enabled: hasToken, queryKey: getGetCurrentProfileQueryKey() } });
   const logout = useLogOut();
   const [logoutError, setLogoutError] = useState('');
@@ -18,7 +19,7 @@ export default function Account() {
   const signOut = () => {
     setLogoutError('');
     logout.mutate(undefined, {
-      onSuccess: () => { localStorage.removeItem('bunsen_access_token'); localStorage.removeItem('bunsen_refresh_token'); localStorage.removeItem('bunsen_profile'); setLocation('/'); },
+      onSuccess: () => { clearSession(); setLocation('/'); },
       onError: error => setLogoutError(error instanceof Error ? error.message : 'Unable to sign out.'),
     });
   };

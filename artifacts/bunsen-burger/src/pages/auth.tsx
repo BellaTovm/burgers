@@ -3,6 +3,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useLogIn, useSignUp } from '@workspace/api-client-react';
 import { Wordmark } from '@/components/site-header';
+import { storeSession } from '@/lib/session';
 
 type AuthMode = 'login' | 'signup';
 
@@ -32,9 +33,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
           setPassword('');
           return;
         }
-        localStorage.setItem('bunsen_access_token', response.access_token);
-        localStorage.setItem('bunsen_refresh_token', response.refresh_token);
-        localStorage.setItem('bunsen_profile', JSON.stringify(response.profile));
+        storeSession(response);
         setLocation('/account');
       },
       onError: error => setFormError(errorMessage(error)),

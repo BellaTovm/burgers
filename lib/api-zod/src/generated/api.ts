@@ -80,6 +80,29 @@ export const LogOutResponse = zod.void()
 
 
 /**
+ * @summary Exchange a refresh token for a new session
+ */
+export const RefreshSessionBody = zod.object({
+  "refresh_token": zod.string()
+})
+
+export const RefreshSessionResponse = zod.object({
+  "access_token": zod.string(),
+  "refresh_token": zod.string(),
+  "expires_at": zod.number().nullish(),
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string().nullish()
+}),
+  "profile": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['customer', 'manager', 'admin'])
+})
+})
+
+
+/**
  * @summary Get the signed-in user's profile and role
  */
 export const GetCurrentProfileResponse = zod.object({
