@@ -1,6 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import type { Profile } from "@workspace/api-zod";
-import { getSupabaseClient, SupabaseConfigurationError } from "../lib/supabase";
+import {
+  getSupabaseClient,
+  getUserScopedClient,
+  SupabaseConfigurationError,
+} from "../lib/supabase";
 
 export type AppRole = "customer" | "manager" | "admin";
 
@@ -8,6 +12,11 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   role: AppRole;
+  /**
+   * The caller's access token, so routes can build a user-scoped Supabase
+   * client and have RLS apply. Never serialise this into a response body.
+   */
+  accessToken: string;
 }
 
 declare global {
@@ -41,18 +50,20 @@ export async function requireAuth(
   }
 
   try {
-    const supabase = getSupabaseClient();
+    // Token verification goes through the Auth API, which needs no session.
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(token);
+    } = await getSupabaseClient().auth.getUser(token);
 
     if (userError || !user) {
       res.status(401).json({ error: "Your session is invalid or expired." });
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
+    // The profile read must be user-scoped: `profiles` is protected by
+    // `auth.uid() = id`, so the shared anon client would match no rows.
+    const { data: profile, error: profileError } = await getUserScopedClient(token)
       .from("profiles")
       .select("id, email, role")
       .eq("id", user.id)
@@ -64,7 +75,15 @@ export async function requireAuth(
       return;
     }
 
-    if (!profile || !isRole(profile.role)) {
+    if (!profile) {
+      // handle_new_user() creates a profile for every auth user, so this is
+      // a genuine data inconsistency rather than a new-account case.
+      req.log.error({ userId: user.id }, "Authenticated user has no profile row");
+      res.status(403).json({ error: "Your account is missing a profile." });
+      return;
+    }
+
+    if (!isRole(profile.role)) {
       res.status(403).json({ error: "Your account does not have an app role." });
       return;
     }
@@ -73,6 +92,7 @@ export async function requireAuth(
       id: user.id,
       email: profile.email || user.email || "",
       role: profile.role,
+      accessToken: token,
     };
     next();
   } catch (error) {
@@ -93,7 +113,9 @@ export function requireRole(...roles: AppRole[]) {
     }
 
     if (!roles.includes(req.auth.role)) {
-      res.status(403).json({ error: "You do not have permission for this action." });
+      res
+        .status(403)
+        .json({ error: "You do not have permission for this action." });
       return;
     }
 
