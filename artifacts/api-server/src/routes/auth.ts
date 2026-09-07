@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Response } from "express";
 import type { Profile } from "@workspace/api-zod";
-import { LogInBody, SignUpBody } from "@workspace/api-zod";
+import { LogInBody, RefreshSessionBody, SignUpBody } from "@workspace/api-zod";
 import {
   getSupabaseClient,
   getSupabaseCredentials,
@@ -132,6 +132,49 @@ router.post("/auth/login", async (req, res) => {
     }
     req.log.error({ err: error }, "Login failed");
     res.status(500).json({ error: "Unable to sign in right now." });
+  }
+});
+
+router.post("/auth/refresh", async (req, res) => {
+  const parsed = RefreshSessionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "A refresh token is required." });
+    return;
+  }
+
+  try {
+    const { data, error } = await getSupabaseClient().auth.refreshSession({
+      refresh_token: parsed.data.refresh_token,
+    });
+
+    if (error || !data.user || !data.session) {
+      // Expired, already-used or revoked token. The client should treat this
+      // as a hard sign-out rather than retrying.
+      res.status(401).json({ error: "Your session has expired. Please sign in again." });
+      return;
+    }
+
+    const profile = await loadProfile(data.session.access_token, data.user.id);
+    if (!profile) {
+      req.log.error({ userId: data.user.id }, "Refreshed user has no profile row");
+      res.status(500).json({ error: "Your account is missing a profile." });
+      return;
+    }
+
+    res.json({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_at: data.session.expires_at ?? null,
+      user: { id: data.user.id, email: data.user.email ?? null },
+      profile,
+    });
+  } catch (error) {
+    if (error instanceof SupabaseConfigurationError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    req.log.error({ err: error }, "Session refresh failed");
+    res.status(401).json({ error: "Your session has expired. Please sign in again." });
   }
 });
 

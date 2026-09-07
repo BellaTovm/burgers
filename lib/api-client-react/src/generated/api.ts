@@ -27,7 +27,8 @@ import type {
   HealthStatus,
   ListProductsParams,
   Product,
-  Profile
+  Profile,
+  RefreshRequest
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -346,6 +347,77 @@ export const useLogOut = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getLogOutMutationOptions(options));
+    }
+
+export const getRefreshSessionUrl = () => {
+
+
+
+
+  return `/api/auth/refresh`
+}
+
+/**
+ * @summary Exchange a refresh token for a new session
+ */
+export const refreshSession = async (refreshRequest: RefreshRequest, options?: Parameters<typeof customFetch>[1]): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getRefreshSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(refreshRequest)
+  }
+);}
+
+
+
+
+
+export const getRefreshSessionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshSession>>, TError,{data: BodyType<RefreshRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshSession>>, TError,{data: BodyType<RefreshRequest>}, TContext> => {
+
+const mutationKey = ['refreshSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshSession>>, {data: BodyType<RefreshRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  refreshSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshSessionMutationResult = NonNullable<Awaited<ReturnType<typeof refreshSession>>>
+    export type RefreshSessionMutationBody = BodyType<RefreshRequest>
+    export type RefreshSessionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Exchange a refresh token for a new session
+ */
+export const useRefreshSession = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshSession>>, TError,{data: BodyType<RefreshRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshSession>>,
+        TError,
+        {data: BodyType<RefreshRequest>},
+        TContext
+      > => {
+      return useMutation(getRefreshSessionMutationOptions(options));
     }
 
 export const getGetCurrentProfileUrl = () => {

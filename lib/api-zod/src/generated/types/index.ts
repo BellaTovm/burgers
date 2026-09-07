@@ -16,3 +16,4 @@ export * from './listProductsParams';
 export * from './product';
 export * from './profile';
 export * from './profileRole';
+export * from './refreshRequest';
