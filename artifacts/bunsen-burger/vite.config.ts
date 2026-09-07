@@ -69,6 +69,15 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,
+    // Locally there is no Replit router in front of us, so forward /api to the
+    // API server ourselves. On Replit the router already maps /api to the same
+    // place, so this is a no-op there.
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
     },
