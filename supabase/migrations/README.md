@@ -12,6 +12,7 @@ numbered one instead.
 | File | Purpose |
 |------|---------|
 | `0000_baseline.sql` | Snapshot of the schema as it existed on 2026-09-07. Already applied in production — written as a safe no-op. |
+| `0001_seed_menu.sql` | Initial menu content: 4 categories, 22 products. Safe to re-run. |
 
 `0000_baseline.sql` deliberately reproduces two known defects rather than
 fixing them, so that it matches production exactly:
