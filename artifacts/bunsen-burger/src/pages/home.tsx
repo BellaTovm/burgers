@@ -1,12 +1,11 @@
 import { ArrowDown, ArrowRight, Check, CircleAlert, LoaderCircle, Minus, Plus, ShoppingBag, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useHealthCheck, useListCategories, useListProducts } from '@workspace/api-client-react';
 import type { Category, Product } from '@workspace/api-client-react';
 import heroBurger from '@assets/generated_images/bunsen-hero-burger.png';
 import { Footer, SiteHeader } from '@/components/site-header';
-
-type CartItem = { product: Product; quantity: number };
+import { addToCart, cartCount, cartTotal, changeQuantity, useCart, type CartLine } from '@/lib/cart';
 
 function ProductSkeleton() {
   return <div className="animate-pulse border-t border-[var(--ink)]/20 pt-5"><div className="h-5 w-2/3 bg-[var(--ink)]/10" /><div className="mt-3 h-3 w-1/2 bg-[var(--ink)]/10" /><div className="mt-6 h-9 w-full bg-[var(--ink)]/10" /></div>;
@@ -41,21 +40,21 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: (product: Pr
   );
 }
 
-function CartPanel({ items, onChange, onClose }: { items: CartItem[]; onChange: (id: string, amount: number) => void; onClose: () => void }) {
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+function CartPanel({ items, onChange, onClose, onCheckout }: { items: CartLine[]; onChange: (id: string, amount: number) => void; onClose: () => void; onCheckout: () => void }) {
+  const total = cartTotal(items);
   return (
     <aside className="fixed inset-x-3 bottom-3 z-30 border-2 border-[var(--ink)] bg-[var(--acid)] p-5 shadow-[8px_8px_0_var(--ink)] md:inset-x-auto md:right-7 md:top-24 md:bottom-auto md:w-[360px]" data-testid="panel-cart">
       <div className="flex items-start justify-between border-b border-[var(--ink)]/25 pb-4">
-        <div><p className="mono-face text-[10px] uppercase tracking-[.18em]">Your bag</p><p className="display-face mt-1 text-3xl">{items.length ? `${items.reduce((s, i) => s + i.quantity, 0)} items` : 'Nothing yet'}</p></div>
+        <div><p className="mono-face text-[10px] uppercase tracking-[.18em]">Your bag</p><p className="display-face mt-1 text-3xl">{items.length ? `${cartCount(items)} items` : 'Nothing yet'}</p></div>
         <button onClick={onClose} className="mono-face text-[10px] uppercase tracking-[.15em] underline" data-testid="button-close-cart">Close</button>
       </div>
       {items.length ? (
         <>
           <div className="max-h-56 space-y-4 overflow-y-auto py-4">
-            {items.map(item => <div className="flex items-center justify-between gap-3" key={item.product.id} data-testid={`row-cart-${item.product.id}`}><div><p className="font-semibold">{item.product.name}</p><p className="mono-face text-[10px]">€{(item.product.price * item.quantity).toFixed(2)}</p></div><div className="flex items-center gap-2 border border-[var(--ink)] px-2 py-1"><button onClick={() => onChange(item.product.id, -1)} aria-label={`Remove one ${item.product.name}`} data-testid={`button-remove-cart-${item.product.id}`}><Minus size={14} /></button><span className="mono-face text-xs">{item.quantity}</span><button onClick={() => onChange(item.product.id, 1)} aria-label={`Add one ${item.product.name}`} data-testid={`button-increase-cart-${item.product.id}`}><Plus size={14} /></button></div></div>)}
+            {items.map(item => <div className="flex items-center justify-between gap-3" key={item.product_id} data-testid={`row-cart-${item.product_id}`}><div><p className="font-semibold">{item.name}</p><p className="mono-face text-[10px]">€{(item.unit_price * item.quantity).toFixed(2)}</p></div><div className="flex items-center gap-2 border border-[var(--ink)] px-2 py-1"><button onClick={() => onChange(item.product_id, -1)} aria-label={`Remove one ${item.name}`} data-testid={`button-remove-cart-${item.product_id}`}><Minus size={14} /></button><span className="mono-face text-xs">{item.quantity}</span><button onClick={() => onChange(item.product_id, 1)} aria-label={`Add one ${item.name}`} data-testid={`button-increase-cart-${item.product_id}`}><Plus size={14} /></button></div></div>)}
           </div>
           <div className="flex items-center justify-between border-t border-[var(--ink)]/25 pt-4"><span className="mono-face text-[10px] uppercase tracking-[.16em]">Total</span><span className="display-face text-2xl">€{total.toFixed(2)}</span></div>
-          <button type="button" onClick={() => window.alert('Online checkout is coming to this counter soon.')} className="mt-4 flex w-full items-center justify-center gap-2 bg-[var(--ink)] px-4 py-3 mono-face text-[10px] uppercase tracking-[.16em] text-[var(--paper)] transition-transform hover:-translate-y-0.5" data-testid="button-checkout">Continue to checkout <ArrowRight size={15} /></button>
+          <button type="button" onClick={onCheckout} className="mt-4 flex w-full items-center justify-center gap-2 bg-[var(--ink)] px-4 py-3 mono-face text-[10px] uppercase tracking-[.16em] text-[var(--paper)] transition-transform hover:-translate-y-0.5" data-testid="button-checkout">Continue to checkout <ArrowRight size={15} /></button>
         </>
       ) : <p className="py-7 text-sm text-[var(--ink)]/65">Pick a burger. We’ll keep it warm.</p>}
     </aside>
@@ -63,8 +62,9 @@ function CartPanel({ items, onChange, onClose }: { items: CartItem[]; onChange: 
 }
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const cart = useCart();
   const [cartOpen, setCartOpen] = useState(false);
   const categoriesQuery = useListCategories();
   const productsQuery = useListProducts();
@@ -74,14 +74,10 @@ export default function Home() {
   const filtered = useMemo(() => activeCategory === 'all' ? products : products.filter(product => product.category_id === activeCategory), [activeCategory, products]);
   const categoryLabel = (id: string) => categories.find(category => category.id === id)?.name ?? 'Menu';
 
-  const addToCart = (product: Product) => {
-    setCart(current => {
-      const found = current.find(item => item.product.id === product.id);
-      return found ? current.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item) : [...current, { product, quantity: 1 }];
-    });
+  const handleAdd = (product: Product) => {
+    addToCart(product);
     setCartOpen(true);
   };
-  const changeCart = (id: string, amount: number) => setCart(current => current.flatMap(item => item.product.id === id ? (item.quantity + amount > 0 ? [{ ...item, quantity: item.quantity + amount }] : []) : [item]));
 
   return (
     <div className="grain min-h-[100dvh] bg-[var(--paper)]">
@@ -126,7 +122,7 @@ export default function Home() {
           <div>
             {categoriesQuery.isError && <div className="mb-7 border-l-2 border-[var(--tomato)] bg-[var(--tomato)]/10 p-4 text-sm" data-testid="error-categories">We couldn’t load menu categories. Try refreshing the page.</div>}
             {productsQuery.isError && <div className="border-l-2 border-[var(--tomato)] bg-[var(--tomato)]/10 p-5 text-sm" data-testid="error-products">We couldn’t load the menu right now. The grill is still on — please try again.</div>}
-            {productsQuery.isLoading ? <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2"><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /></div> : productsQuery.isError ? null : filtered.length === 0 ? <div className="border-t border-[var(--ink)]/25 py-14" data-testid="empty-products"><Zap size={22} /><h3 className="display-face mt-4 text-3xl">Nothing on this shelf.</h3><p className="mt-2 text-sm text-[var(--ink)]/60">Try another category. We keep the menu tight.</p></div> : <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2">{filtered.map(product => <div key={product.id}><p className="mb-3 mono-face text-[9px] uppercase tracking-[.16em] text-[var(--tomato)]">{categoryLabel(product.category_id)}</p><ProductCard product={product} onAdd={addToCart} /></div>)}</div>}
+            {productsQuery.isLoading ? <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2"><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /><ProductSkeleton /></div> : productsQuery.isError ? null : filtered.length === 0 ? <div className="border-t border-[var(--ink)]/25 py-14" data-testid="empty-products"><Zap size={22} /><h3 className="display-face mt-4 text-3xl">Nothing on this shelf.</h3><p className="mt-2 text-sm text-[var(--ink)]/60">Try another category. We keep the menu tight.</p></div> : <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2">{filtered.map(product => <div key={product.id}><p className="mb-3 mono-face text-[9px] uppercase tracking-[.16em] text-[var(--tomato)]">{categoryLabel(product.category_id)}</p><ProductCard product={product} onAdd={handleAdd} /></div>)}</div>}
           </div>
         </div>
       </main>
@@ -139,8 +135,8 @@ export default function Home() {
       </section>
 
       <Footer />
-      {cartOpen && <CartPanel items={cart} onChange={changeCart} onClose={() => setCartOpen(false)} />}
-      {!cartOpen && cart.length > 0 && <button onClick={() => setCartOpen(true)} className="fixed bottom-5 right-5 z-20 flex items-center gap-3 border-2 border-[var(--ink)] bg-[var(--acid)] px-5 py-4 shadow-[5px_5px_0_var(--ink)] transition-transform hover:-translate-y-1" data-testid="button-open-cart"><ShoppingBag size={18} /><span className="mono-face text-[10px] uppercase tracking-[.15em]">Bag ({cart.reduce((sum, item) => sum + item.quantity, 0)})</span></button>}
+      {cartOpen && <CartPanel items={cart} onChange={changeQuantity} onClose={() => setCartOpen(false)} onCheckout={() => setLocation('/checkout')} />}
+      {!cartOpen && cart.length > 0 && <button onClick={() => setCartOpen(true)} className="fixed bottom-5 right-5 z-20 flex items-center gap-3 border-2 border-[var(--ink)] bg-[var(--acid)] px-5 py-4 shadow-[5px_5px_0_var(--ink)] transition-transform hover:-translate-y-1" data-testid="button-open-cart"><ShoppingBag size={18} /><span className="mono-face text-[10px] uppercase tracking-[.15em]">Bag ({cartCount(cart)})</span></button>}
     </div>
   );
 }

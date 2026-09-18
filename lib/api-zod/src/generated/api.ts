@@ -143,3 +143,58 @@ export const ListProductsResponseItem = zod.object({
 export const ListProductsResponse = zod.array(ListProductsResponseItem)
 
 
+/**
+ * @summary List the caller's orders
+ */
+export const ListOrdersResponseItem = zod.object({
+  "id": zod.string(),
+  "customer_id": zod.string().nullish(),
+  "customer_name": zod.string(),
+  "customer_phone": zod.string(),
+  "delivery_address": zod.string(),
+  "items": zod.array(zod.object({
+  "product_id": zod.string(),
+  "name": zod.string(),
+  "unit_price": zod.number(),
+  "quantity": zod.number(),
+  "line_total": zod.number()
+})),
+  "total_price": zod.number(),
+  "status": zod.enum(['pending', 'accepted', 'preparing', 'delivering', 'completed', 'rejected']),
+  "created_at": zod.string().nullish()
+})
+export const ListOrdersResponse = zod.array(ListOrdersResponseItem)
+
+
+/**
+ * @summary Place an order
+ */
+export const CreateOrderBody = zod.object({
+  "customer_name": zod.string(),
+  "customer_phone": zod.string(),
+  "delivery_address": zod.string(),
+  "items": zod.array(zod.object({
+  "product_id": zod.string(),
+  "quantity": zod.number()
+}))
+})
+
+export const CreateOrderResponse = zod.object({
+  "id": zod.string(),
+  "customer_id": zod.string().nullish(),
+  "customer_name": zod.string(),
+  "customer_phone": zod.string(),
+  "delivery_address": zod.string(),
+  "items": zod.array(zod.object({
+  "product_id": zod.string(),
+  "name": zod.string(),
+  "unit_price": zod.number(),
+  "quantity": zod.number(),
+  "line_total": zod.number()
+})),
+  "total_price": zod.number(),
+  "status": zod.enum(['pending', 'accepted', 'preparing', 'delivering', 'completed', 'rejected']),
+  "created_at": zod.string().nullish()
+})
+
+

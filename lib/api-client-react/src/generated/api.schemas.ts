@@ -72,6 +72,52 @@ export interface Product {
   is_available: boolean;
 }
 
+export interface OrderItem {
+  product_id: string;
+  name: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+}
+
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+
+
+export const OrderStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  preparing: 'preparing',
+  delivering: 'delivering',
+  completed: 'completed',
+  rejected: 'rejected',
+} as const;
+
+export interface Order {
+  id: string;
+  /** @nullable */
+  customer_id?: string | null;
+  customer_name: string;
+  customer_phone: string;
+  delivery_address: string;
+  items: OrderItem[];
+  total_price: number;
+  status: OrderStatus;
+  /** @nullable */
+  created_at?: string | null;
+}
+
+export interface CreateOrderLine {
+  product_id: string;
+  quantity: number;
+}
+
+export interface CreateOrderRequest {
+  customer_name: string;
+  customer_phone: string;
+  delivery_address: string;
+  items: CreateOrderLine[];
+}
+
 export type ListProductsParams = {
 category?: string;
 };
