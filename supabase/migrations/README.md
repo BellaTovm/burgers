@@ -13,6 +13,7 @@ numbered one instead.
 |------|---------|
 | `0000_baseline.sql` | Snapshot of the schema as it existed on 2026-09-07. Already applied in production — written as a safe no-op. |
 | `0001_seed_menu.sql` | Initial menu content: 4 categories, 22 products. Safe to re-run. |
+| `0002_place_order.sql` | `place_order()` — the only write path into `orders`. Prices lines server-side, decrements stock, inserts the order in one transaction. |
 
 `0000_baseline.sql` deliberately reproduces two known defects rather than
 fixing them, so that it matches production exactly:

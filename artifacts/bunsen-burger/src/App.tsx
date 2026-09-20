@@ -7,6 +7,7 @@ import NotFound from '@/pages/not-found';
 import Home from '@/pages/home';
 import { AuthPage } from '@/pages/auth';
 import Account from '@/pages/account';
+import Checkout from '@/pages/checkout';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
 import { accessToken } from '@/lib/session';
 import {
@@ -30,6 +31,7 @@ function Router() {
         <Route path="/login"><AuthPage mode="login" /></Route>
         <Route path="/signup"><AuthPage mode="signup" /></Route>
         <Route path="/account" component={Account} />
+        <Route path="/checkout" component={Checkout} />
         <Route path="/not-found" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
